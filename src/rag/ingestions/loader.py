@@ -15,7 +15,7 @@ def loader():
         converter = DocumentConverter(format_options = {InputFormat.PDF: PdfFormatOption(pipeline_options = pipeline_options)})        
 
         print("Loading and converting the PDF document...")
-        result = converter.convert(r"C:\Users\123\OneDrive - Higher Education Commission\Desktop\Study Material\Projects\RAG---Privacy-Policy-Retrieval\src\rag\data\policy.pdf")
+        result = converter.convert(r"C:\Users\staff\Documents\RAG\src\rag\data\policy_removed.pdf")
         document = result.document
         return document
 

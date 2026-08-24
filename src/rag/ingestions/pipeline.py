@@ -7,6 +7,7 @@ warnings.filterwarnings("ignore")
 logging.disable(logging.INFO)
 from .splitter import splitter
 from .loader import loader
+from .embedding import embedding
 
 def pipeline():
     """
@@ -23,8 +24,7 @@ def pipeline():
 
     # Split the document into chunks
     chunks = splitter(document)
-    return chunks # Return only the first 5 chunks for demonstration purposes
+    embeddings = embedding(chunks)
+    return embeddings
 
 chunks = pipeline()
-print(f"Number of chunks created: {len(chunks)}")
-print(f"First 5 chunks: {chunks[:5]}")
