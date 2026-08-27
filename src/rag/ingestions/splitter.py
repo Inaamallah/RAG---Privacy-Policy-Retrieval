@@ -1,6 +1,6 @@
 from transformers import AutoTokenizer
-
 from .loader import loader
+
 from docling.chunking import HybridChunker
 from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 
@@ -18,6 +18,9 @@ def splitter(doc, chunk_size=512, chunk_overlap=200):
     """
     model_id = "BAAI/bge-m3"
     try:        
+        if doc is None:
+            doc = loader()  # Load the document if not provided
+
         tokenizer = AutoTokenizer.from_pretrained(model_id) # Downloads and initializes the tokenizer associated with BAAI/bge-m3
         hf_tokenizer = HuggingFaceTokenizer(tokenizer = tokenizer, max_tokens=chunk_size)  # Standardizes the Hugging Face tokenizer so Docling can call token-counting methods
         # Split the document into chunks
@@ -30,3 +33,8 @@ def splitter(doc, chunk_size=512, chunk_overlap=200):
         print(f"An error occurred during splitting: {e}")
         return []
 
+if __name__ == "__main__":
+    # Example usage
+    document = loader()  # Load the document
+    chunks = splitter(document)  # Split the document into chunks
+    print(chunks)

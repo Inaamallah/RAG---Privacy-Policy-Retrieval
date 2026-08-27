@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "chromadb>=1.5.9",
     "docling>=2.121.0",
     "docling-core>=2.92.0",
     "langchain-community>=0.4.2",
