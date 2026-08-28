@@ -58,9 +58,7 @@ def _chunk_text(chunk):
     """Reads the text off a docling DocChunk or a LangChain Document."""
     text = getattr(chunk, "text", None)
     if text is None:
-        text = getattr(chunk, "page_content", None)
-    if text is None:
-        raise TypeError(f"Chunk has neither .text nor .page_content: {type(chunk)!r}")
+        raise TypeError(f"Chunk dont has .text: {type(chunk)!r}")
     return text
 
 
@@ -130,7 +128,7 @@ def store_embeddings(
     embeddings,
     collection_name=DEFAULT_COLLECTION,
     persist_dir=DEFAULT_PERSIST_DIR,
-    replace_existing=True,
+    replace_existing=False,
     batch_size=1000,
 ):
     """
