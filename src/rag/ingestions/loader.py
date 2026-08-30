@@ -15,6 +15,8 @@ def loader(
     do_table_structure=True,
     do_formula_enrichment=True,
     do_picture_classification=False,
+    do_picture_description=False,
+    generate_picture_images=False,
     num_threads=None,
 ):
     """
@@ -34,6 +36,8 @@ def loader(
         do_formula_enrichment: Transcribe formulas with the CodeFormula model.
             Very slow without a GPU.
         do_picture_classification: Label figures with the figure classifier.
+        do_picture_description: Describe pictures/figures with a multimodal model.
+        generate_picture_images: Generate image assets for discovered pictures.
         num_threads: Torch threads to use; defaults to the CPU count.
 
     Returns:
@@ -45,6 +49,8 @@ def loader(
             do_table_structure=do_table_structure,
             do_formula_enrichment=do_formula_enrichment,
             do_picture_classification=do_picture_classification,
+            do_picture_description=do_picture_description,
+            generate_picture_images=generate_picture_images,
             accelerator_options=AcceleratorOptions(
                 num_threads=num_threads or os.cpu_count() or 4,
                 device=AcceleratorDevice.AUTO,

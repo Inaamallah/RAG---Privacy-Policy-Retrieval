@@ -36,9 +36,11 @@ def ingest(
     chunk_size=512,
     chunk_overlap=200,
     replace_existing=False,
-    do_ocr=False,
-    do_formula_enrichment=False,
-    do_picture_classification=False,
+    do_ocr=True,
+    do_formula_enrichment=True,
+    do_picture_classification=True,
+    do_picture_description=True,
+    generate_picture_images=True,
 ):
     """
     Runs the ingestion end to end: load, split, embed, store.
@@ -64,6 +66,8 @@ def ingest(
         do_ocr=do_ocr,
         do_formula_enrichment=do_formula_enrichment,
         do_picture_classification=do_picture_classification,
+        generate_picture_images = generate_picture_images,
+        do_picture_description=do_picture_description
     )
     if document is None:
         print("Failed to load the document.")
