@@ -6,6 +6,7 @@ embedding function is attached to the collection.
 """
 
 import hashlib
+import re
 from pathlib import Path
 
 import chromadb
@@ -87,6 +88,31 @@ def _chunk_pages(chunk):
     return ",".join(str(p) for p in sorted(pages))
 
 
+# Docling's formula enrichment degrades rather than fails on a CPU: instead of
+# LaTeX it emits runs of empty "\text { }" groups. Those carry no content but
+# still embed, and rank ahead of real text on short or generic queries.
+_LATEX_FILLER = re.compile(r"\\text\s*\{\s*\}")
+
+
+def _is_contentless(text):
+    r"""
+    True when a chunk holds no readable content once LaTeX filler is removed.
+
+    Only empty "\text { }" groups and bare math delimiters are stripped, so a
+    formula with real symbols, or a short but genuine sentence, still counts as
+    content.
+
+    Args:
+        text: The chunk text to test.
+
+    Returns:
+        True if nothing alphanumeric survives the strip.
+    """
+    stripped = _LATEX_FILLER.sub("", text or "")
+    stripped = stripped.replace("$", "").replace("\\", "")
+    return not any(character.isalnum() for character in stripped)
+
+
 def _chunk_metadata(chunk, index):
     """
     Flattens chunk metadata into the scalar-only shape Chroma accepts.
@@ -144,6 +170,9 @@ def store_embeddings(
             the superseded rows would otherwise linger forever.
         batch_size: Rows per add call, to stay under Chroma's max batch size.
 
+    Chunks whose text is contentless once LaTeX filler is stripped are dropped
+    rather than stored; they would otherwise crowd out real text at retrieval.
+
     Returns:
         The Chroma collection, or None if the write failed.
     """
@@ -156,6 +185,22 @@ def store_embeddings(
             return None
         if len(chunks) != len(embeddings):
             raise ValueError(f"Got {len(chunks)} chunks but {len(embeddings)} embeddings; they must match 1:1.")
+
+        # Drop contentless chunks before anything is keyed off their position,
+        # so chunks and embeddings stay aligned 1:1.
+        kept = [
+            (chunk, vector)
+            for chunk, vector in zip(chunks, embeddings)
+            if not _is_contentless(_chunk_text(chunk))
+        ]
+        dropped = len(chunks) - len(kept)
+        if dropped:
+            print(f"Skipping {dropped} chunk(s) with no readable text.")
+        if not kept:
+            print("No chunks to store.")
+            return None
+        chunks = [chunk for chunk, _ in kept]
+        embeddings = [vector for _, vector in kept]
 
         seen = {}
         ids = [_chunk_id(chunk, seen) for chunk in chunks]

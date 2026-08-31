@@ -37,10 +37,10 @@ def ingest(
     chunk_overlap=200,
     replace_existing=False,
     do_ocr=True,
-    do_formula_enrichment=True,
-    do_picture_classification=True,
-    do_picture_description=True,
-    generate_picture_images=True,
+    do_formula_enrichment=False,
+    do_picture_classification=False,
+    do_picture_description=False,
+    generate_picture_images=False,
 ):
     """
     Runs the ingestion end to end: load, split, embed, store.
@@ -57,6 +57,10 @@ def ingest(
         do_formula_enrichment: Transcribe formulas with a generative model.
             Very slow without a GPU.
         do_picture_classification: Label figures with the figure classifier.
+        do_picture_description: Describe figures with a multimodal model. Off
+            by default: on CPU it invents figure prose that is then indexed as
+            if it were document text.
+        generate_picture_images: Generate image assets for discovered pictures.
 
     Returns:
         The Chroma collection, or None if any step failed.
@@ -171,6 +175,16 @@ def _build_parser():
         action="store_true",
         help="Label figures with the figure classifier (slow without a GPU)",
     )
+    ingest_parser.add_argument(
+        "--picture-description",
+        action="store_true",
+        help="Describe figures with a multimodal model (slow, and it invents detail without a GPU)",
+    )
+    ingest_parser.add_argument(
+        "--generate-picture-images",
+        action="store_true",
+        help="Generate image assets for discovered pictures",
+    )
     _add_store_arguments(ingest_parser)
 
     ask_parser = commands.add_parser("ask", help="Answer a question from the stored documents")
@@ -199,6 +213,8 @@ def main():
             do_ocr=args.do_ocr,
             do_formula_enrichment=args.formula_enrichment,
             do_picture_classification=args.picture_classification,
+            do_picture_description=args.picture_description,
+            generate_picture_images=args.generate_picture_images,
         )
         return 0 if collection is not None else 1
 

@@ -9,24 +9,60 @@ from docling.datamodel.pipeline_options import AcceleratorDevice, AcceleratorOpt
 DEFAULT_PDF = Path(__file__).resolve().parents[1] / "data" / "policy_removed.pdf"
 
 
+def recover_formula_text(document):
+    """
+    Fills in formula items from the text layer docling already extracted.
+
+    Docling only writes `text` on a formula item when formula enrichment runs,
+    so with enrichment off every equation serialises as
+    `<!-- formula-not-decoded -->` and never reaches the index. The unicode the
+    PDF's own text layer carried is still on the item as `orig`, so it is
+    copied across when the enriched text is missing. Nothing is generated and
+    nothing is guessed -- this only stops docling discarding what it parsed.
+
+    Args:
+        document: The docling document to repair, modified in place.
+
+    Returns:
+        The same document.
+    """
+    recovered = 0
+    for item, _level in document.iterate_items():
+        if "formula" not in str(getattr(item, "label", "")).lower():
+            continue
+        if (getattr(item, "text", "") or "").strip():
+            continue  # enrichment produced a transcription; leave it alone
+        original = (getattr(item, "orig", "") or "").strip()
+        if original:
+            item.text = original
+            recovered += 1
+    if recovered:
+        print(f"Recovered {recovered} formula(s) from the PDF text layer.")
+    return document
+
+
 def loader(
     source=DEFAULT_PDF,
     do_ocr=False,
     do_table_structure=True,
-    do_formula_enrichment=True,
+    do_formula_enrichment=False,
     do_picture_classification=False,
     do_picture_description=False,
     generate_picture_images=False,
     num_threads=None,
 ):
-    """
+    r"""
     Loads a PDF document and converts it into a structured format.
 
     The enrichment passes default to off, as they do in docling itself. Each
     one loads and runs an extra model over the page: formula enrichment in
     particular runs a generative vision model that decodes token by token, and
     on a CPU-only machine that turns a short PDF into a job of tens of minutes.
-    Only the text reaches the chunker, so neither pass changes what is indexed.
+    They also degrade rather than fail there: formula enrichment emits runs of
+    empty "\text { }" and picture description invents figure prose, both of
+    which are then indexed as if they were document text. Equations survive
+    without them via `recover_formula_text`, which reads the PDF's own text
+    layer instead of running a model over the page image.
 
     Args:
         source: Path to the PDF to convert.
@@ -62,7 +98,7 @@ def loader(
 
         print(f"Loading and converting {source}...")
         result = converter.convert(str(source))
-        return result.document
+        return recover_formula_text(result.document)
 
     except Exception as e:
         print(f"An error occurred: {e}")
