@@ -24,6 +24,7 @@ def retrieve(
     collection_name=DEFAULT_COLLECTION,
     persist_dir=DEFAULT_PERSIST_DIR,
     collection=None,
+    where=None,
 ):
     """
     Returns the chunks closest to the query, nearest first.
@@ -36,6 +37,8 @@ def retrieve(
         persist_dir: Directory the Chroma database files live in.
         collection: An already-open collection to reuse; one is opened if
             omitted.
+        where: Optional Chroma metadata filter, e.g. `{"source": "a.pdf"}`.
+            Restricts the search to matching rows; None searches everything.
 
     Returns:
         A list of dicts with `id`, `text`, `metadata`, `distance` and `score`,
@@ -61,6 +64,7 @@ def retrieve(
     result = collection.query(
         query_embeddings=[vector],
         n_results=min(top_k, available),
+        where=where or None,
         include=["documents", "metadatas", "distances"],
     )
 
