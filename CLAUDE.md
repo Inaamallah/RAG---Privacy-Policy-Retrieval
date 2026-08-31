@@ -32,6 +32,46 @@ There are no tests, linter config, or build step in this repo.
 `GROQ_API_KEY` must be set (a `.env` at the repo root is loaded by `generation/generator.py`).
 `GROQ_MODEL` optionally overrides the default model id.
 
+## Running the Streamlit app
+
+The page only *reads* the vector store — it never ingests, because it has no uploader. So the
+document has to be in Chroma before the app will answer anything. Three steps from a clean clone:
+
+```bash
+# 1. environment
+uv sync
+
+# 2. credentials -- create .env at the repo root
+#    GROQ_API_KEY=gsk_...
+#    GROQ_MODEL=openai/gpt-oss-120b     (optional)
+
+# 3. ingest the document the page is pinned to, then serve it
+uv run rag ingest --pdf src/rag/data/policy_removed_removed.pdf --no-ocr --replace-existing
+uv run rag-ui
+```
+
+`rag-ui` opens `http://localhost:8501`. It is a shim (`ui.py`) around `streamlit run src/rag/app.py`,
+so anything Streamlit accepts passes straight through:
+
+```bash
+uv run rag-ui --server.port 8600          # different port
+uv run rag-ui --server.headless true      # no browser, e.g. over SSH
+uv run streamlit run src/rag/app.py       # equivalent, without the shim
+```
+
+Only step 3's ingest is slow (docling conversion plus bge-m3 on CPU); it is a one-off per document.
+The app itself starts in about a second because it never imports docling, then spends a few seconds
+loading bge-m3 behind a spinner on first launch. Both the collection handle and the embedding model
+are cached with `st.cache_resource`, so that cost is paid once per process, not once per question.
+
+**Serving a different PDF** means two matching changes: ingest it, and edit the `DOCUMENT` constant
+at the top of `app.py`. Changing only one of them gives an empty page — the retrieval filter and the
+stored `source` metadata have to agree.
+
+If the page reports no stored chunks, the collection is empty or holds a different `source`; re-run
+step 3. Check what is actually stored with `uv run rag-search "..." --show-text`, which hits the same
+collection without the LLM.
+
 ## Architecture
 
 The flow is one direction, each stage a plain function that takes and returns data — no classes,
